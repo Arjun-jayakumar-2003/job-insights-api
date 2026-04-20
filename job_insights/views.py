@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import requests
 import os
+import re
 
 
 @api_view(['GET'])
@@ -70,7 +71,8 @@ def test_api(request):
 
     for desc in all_descriptions:
         for skill in skill_keywords:
-            if skill in desc:
+            pattern = r"\b" + re.escape(skill) + r"\b"
+            if re.search(pattern, desc):
                 skill_count[skill] = skill_count.get(skill, 0) + 1
 
     top_skills = sorted(skill_count.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -91,6 +93,25 @@ def test_api(request):
 
     average_salary = None
 
+    top_skills_clean = [
+        {"skill": skill, "count": count}
+        for skill, count in top_skills
+    ]
+
+    top_locations_clean = [
+        {"location": loc, "count": count}
+        for loc, count in top_locations
+    ]
+
+    response_data = {
+        "summary": {
+            "total_jobs": total_jobs
+        },
+        "insights": {
+            "top_skills": top_skills_clean,
+            "top_locations": top_locations_clean,
+            "average_salary": average_salary
+        }
+    }
     
-    
-    return Response(data.get("results", []))
+    return Response(response_data)
