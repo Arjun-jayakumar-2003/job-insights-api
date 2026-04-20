@@ -33,10 +33,64 @@ def test_api(request):
 
         if not jobs:
             return Response({"message": "No jobs found for the given role"},status=404)
+        
+
     
 
         
     except Exception as e:
         return Response({"error": "Failed to fetch job data"},status=500)
+    
+    total_jobs = len(jobs) if isinstance(jobs, list) else 0
+
+    all_descriptions = []
+
+    for job in jobs:
+        desc = job.get("description", "")
+        all_descriptions.append(desc.lower())
+
+    skill_keywords = [
+        # programming languages
+        "python", "java", "c++", "c", "javascript",
+
+        # frameworks / libraries
+        "django", "flask", "fastapi", "spring", "react",
+
+        # databases
+        "sql", "mysql", "postgresql",
+
+        # tools & platforms
+        "docker", "kubernetes", "git", "aws", "azure",
+
+        # data / ai
+        "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch"
+    ]
+
+    skill_count = {}
+
+    for desc in all_descriptions:
+        for skill in skill_keywords:
+            if skill in desc:
+                skill_count[skill] = skill_count.get(skill, 0) + 1
+
+    top_skills = sorted(skill_count.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    all_locations = []
+
+    for job in jobs:
+        location = job.get("location", {}).get("display_name", "")
+        all_locations.append(location)
+
+    location_count = {}
+
+    for loc in all_locations:
+        if loc:
+            location_count[loc] = location_count.get(loc, 0) + 1
+
+    top_locations = sorted(location_count.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    average_salary = None
+
+    
     
     return Response(data.get("results", []))
