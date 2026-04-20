@@ -18,12 +18,25 @@ def test_api(request):
         "what": role,
         "results_per_page": 5
     }
+    try:
+        response = requests.get(url, params=params)
 
-    response = requests.get(url, params=params)
+        if response.status_code != 200:
+            return Response({"error": "External API returned an error"}, status=502)
+        
 
-    if response.status_code != 200:
-        return Response({"error": "Failed to fetch data"}, status=500)
+        data = response.json()
+        if not isinstance(data, dict):
+            return Response({"error": "Invalid data format received from API"},status=500)
+
+        jobs = data.get("results", [])
+
+        if not jobs:
+            return Response({"message": "No jobs found for the given role"},status=404)
     
-    data = response.json()
+
+        
+    except Exception as e:
+        return Response({"error": "Failed to fetch job data"},status=500)
     
     return Response(data.get("results", []))
