@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import JobQuery, JobInsight
 
-# Register your models here.
+admin.site.register(JobQuery)
+admin.site.register(JobInsight)
