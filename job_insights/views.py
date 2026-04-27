@@ -3,6 +3,7 @@ from rest_framework.response import Response
 import requests
 import os
 import re
+from .models import JobQuery, JobInsight
 
 
 @api_view(['GET'])
@@ -12,6 +13,8 @@ def test_api(request):
 
     if not role:
         return Response({"error": "role is required"}, status=400)
+
+    
 
     params = {
         "app_id": os.getenv("ADZUNA_APP_ID"),
@@ -40,7 +43,8 @@ def test_api(request):
 
         
     except Exception as e:
-        return Response({"error": "Failed to fetch job data"},status=500)
+        print(f"ERROR: {e}")
+        return Response({"error": "Failed to fetch job data"}, status=500)
     
     total_jobs = len(jobs) if isinstance(jobs, list) else 0
 
@@ -102,6 +106,15 @@ def test_api(request):
         {"location": loc, "count": count}
         for loc, count in top_locations
     ]
+
+    query_obj = JobQuery.objects.create(role=role)
+    JobInsight.objects.create(
+        query=query_obj,
+        total_jobs=total_jobs,
+        top_skills=top_skills_clean,
+        top_locations=top_locations_clean,
+        average_salary=average_salary
+    )
 
     response_data = {
         "summary": {
