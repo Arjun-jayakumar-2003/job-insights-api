@@ -4,6 +4,7 @@ import requests
 import os
 import re
 from .models import JobQuery, JobInsight
+from django.core.cache import cache
 
 
 @api_view(['GET'])
@@ -17,13 +18,22 @@ def test_api(request):
     if role:
         role = role.strip().lower()
 
+    cache_key = f"jobs:{role}"
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        print("CACHE HIT")
+        return Response(cached_data)
+    
+    print("CACHE MISS → CHECKING DATABASE")
     existing_query = JobQuery.objects.filter(role=role).first()
 
     if existing_query:
         existing_insight = JobInsight.objects.filter(query=existing_query).first()
 
         if existing_insight:
-            return Response({
+
+            response_data = {
                 "summary": {
                     "total_jobs": existing_insight.total_jobs
                 },
@@ -32,7 +42,11 @@ def test_api(request):
                     "top_locations": existing_insight.top_locations,
                     "average_salary": existing_insight.average_salary
                 }
-            })
+            }
+
+            cache.set(cache_key, response_data, timeout=300)
+            print("DB HIT")
+            return Response(response_data)
         
     params = {
         "app_id": os.getenv("ADZUNA_APP_ID"),
@@ -41,6 +55,7 @@ def test_api(request):
         "results_per_page": 5
     }
     try:
+        print("DB MISS → FETCHING FROM API")
         response = requests.get(url, params=params)
 
         if response.status_code != 200:
@@ -146,5 +161,7 @@ def test_api(request):
             "average_salary": average_salary
         }
     }
-    
+
+    cache.set(cache_key, response_data, timeout=300)
+
     return Response(response_data)
