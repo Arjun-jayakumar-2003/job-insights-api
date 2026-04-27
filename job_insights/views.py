@@ -13,9 +13,27 @@ def test_api(request):
 
     if not role:
         return Response({"error": "role is required"}, status=400)
-
     
+    if role:
+        role = role.strip().lower()
 
+    existing_query = JobQuery.objects.filter(role=role).first()
+
+    if existing_query:
+        existing_insight = JobInsight.objects.filter(query=existing_query).first()
+
+        if existing_insight:
+            return Response({
+                "summary": {
+                    "total_jobs": existing_insight.total_jobs
+                },
+                "insights": {
+                    "top_skills": existing_insight.top_skills,
+                    "top_locations": existing_insight.top_locations,
+                    "average_salary": existing_insight.average_salary
+                }
+            })
+        
     params = {
         "app_id": os.getenv("ADZUNA_APP_ID"),
         "app_key": os.getenv("ADZUNA_APP_KEY"),
@@ -107,13 +125,15 @@ def test_api(request):
         for loc, count in top_locations
     ]
 
-    query_obj = JobQuery.objects.create(role=role)
-    JobInsight.objects.create(
+    query_obj , created  = JobQuery.objects.get_or_create(role=role)
+    JobInsight.objects.update_or_create(
         query=query_obj,
-        total_jobs=total_jobs,
-        top_skills=top_skills_clean,
-        top_locations=top_locations_clean,
-        average_salary=average_salary
+        defaults={
+            "total_jobs": total_jobs,
+            "top_skills": top_skills_clean,
+            "top_locations": top_locations_clean,
+            "average_salary": average_salary
+        }
     )
 
     response_data = {
